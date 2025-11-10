@@ -218,7 +218,7 @@ bash
 sudo ./examples/demo_workloads.sh
 
 # Or run the video demonstration script
-sudo ./scripts/demo-video-script.sh
+sudo ./demo-video-script.sh
 
 🗑️ Cleanup & Maintenance
 Individual Resource Cleanup
