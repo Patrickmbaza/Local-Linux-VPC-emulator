@@ -5,6 +5,34 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Building a Virtual Private Cloud (VPC) from Scratch on Linux</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Mermaid.js for interactive diagrams -->
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ 
+            startOnLoad: true,
+            theme: 'dark',
+            securityLevel: 'loose',
+            themeCSS: `
+                .node rect, .node circle, .node ellipse, .node polygon {
+                    fill: #1a1a1a;
+                    stroke: #00d4ff;
+                    stroke-width: 2px;
+                }
+                .cluster rect {
+                    fill: #0a1929;
+                    stroke: #00d4ff;
+                    stroke-width: 2px;
+                }
+                .edgePath .path {
+                    stroke: #a0a0a0;
+                }
+                .label {
+                    color: #e0e0e0;
+                    font-family: 'Inter', sans-serif;
+                }
+            `
+        });
+    </script>
     <style>
         :root {
             --primary: #0a1929;
@@ -293,11 +321,20 @@
             margin: 2.5rem 0;
         }
 
-        .architecture-image img {
-            max-width: 100%;
+        .mermaid {
+            background: var(--bg-card);
+            padding: 2rem;
             border-radius: var(--radius);
-            box-shadow: var(--shadow);
             border: 1px solid var(--border);
+            margin: 2rem 0;
+            text-align: center;
+            overflow: auto;
+            max-width: 100%;
+        }
+
+        .mermaid svg {
+            max-width: 100%;
+            height: auto;
         }
 
         .architecture-caption {
@@ -511,6 +548,11 @@
             .btn {
                 padding: 0.8rem 1.5rem;
             }
+            
+            .mermaid {
+                padding: 1rem;
+                overflow-x: auto;
+            }
         }
     </style>
 </head>
@@ -574,8 +616,41 @@
             <p>The VPC implementation uses Linux network namespaces to create isolated subnets, connected via virtual Ethernet pairs to Linux bridges that act as virtual routers. Each VPC has its own routing table and firewall rules.</p>
             
             <div class="architecture-image">
-                <img src="Architecture-Overview.png" alt="VPC Architecture Overview">
-                <p class="architecture-caption">Architecture diagram showing VPC components and their relationships</p>
+                <div class="mermaid">
+flowchart TD
+    INTERNET[Internet Cloud]
+
+    subgraph VPC_A [VPC A: 10.0.0.0/16]
+        direction TB
+        SUB_A_PUB[Public Subnet<br/>10.0.1.0/24]
+            EC2_A_PUB[Bastion / Public Host]
+
+        SUB_A_PRIV[Private Subnet<br/>10.0.2.0/24]
+            EC2_A_PRIV[App / DB Server<br/>Internal Only]
+    end
+
+    subgraph VPC_B [VPC B: 172.16.0.0/16]
+        SUB_B_PUB[Public Subnet<br/>172.16.1.0/24]
+        EC2_B_PUB[Public Service]
+    end
+
+    NAT[NAT Gateway]
+    PEER[VPC Peering Connection<br/>Optional]
+
+    %% Connections
+    INTERNET -- IGW Route --> EC2_B_PUB
+    INTERNET --> NAT
+    NAT -- NAT Route --> EC2_A_PUB
+    NAT -- NAT Route --> EC2_A_PRIV
+
+    EC2_A_PUB --> SUB_A_PUB
+    EC2_A_PRIV --> SUB_A_PRIV
+    EC2_B_PUB --> SUB_B_PUB
+
+    VPC_A <---> PEER
+    PEER <---> VPC_B
+                </div>
+                <p class="architecture-caption">Interactive architecture diagram showing VPC components and network flows</p>
             </div>
             
             <h3>Under the Hood</h3>
