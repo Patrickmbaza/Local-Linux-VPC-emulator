@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Building a Virtual Private Cloud (VPC) from Scratch on Linux</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --secondary: #3498db;
+            --accent: #e74c3c;
+            --light: #ecf0f1;
+            --dark: #1a252f;
+            --success: #27ae60;
+            --warning: #f39c12;
+            --text: #333;
+            --text-light: #7f8c8d;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --radius: 8px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: var(--text);
+            background-color: #f9f9f9;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--primary), var(--dark));
+            color: white;
+            padding: 2rem 0;
+            box-shadow: var(--shadow);
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo i {
+            color: var(--secondary);
+        }
+
+        nav ul {
+            display: flex;
+            list-style: none;
+            gap: 1.5rem;
+        }
+
+        nav a {
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+
+        nav a:hover {
+            color: var(--secondary);
+        }
+
+        .hero {
+            background: linear-gradient(rgba(44, 62, 80, 0.9), rgba(44, 62, 80, 0.9)), url('https://images.unsplash.com/photo-1558494949-ef010cbdcc31?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80');
+            background-size: cover;
+            background-position: center;
+            color: white;
+            padding: 4rem 0;
+            text-align: center;
+        }
+
+        .hero h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .hero p {
+            font-size: 1.2rem;
+            max-width: 800px;
+            margin: 0 auto 2rem;
+        }
+
+        .btn {
+            display: inline-block;
+            background-color: var(--secondary);
+            color: white;
+            padding: 0.8rem 1.5rem;
+            border-radius: var(--radius);
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s;
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .btn-outline {
+            background-color: transparent;
+            border: 2px solid var(--secondary);
+            margin-left: 10px;
+        }
+
+        .btn-outline:hover {
+            background-color: var(--secondary);
+        }
+
+        main {
+            padding: 3rem 0;
+        }
+
+        section {
+            margin-bottom: 3rem;
+            background-color: white;
+            border-radius: var(--radius);
+            padding: 2rem;
+            box-shadow: var(--shadow);
+        }
+
+        h2 {
+            color: var(--primary);
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--light);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        h3 {
+            color: var(--primary);
+            margin: 1.5rem 0 1rem;
+        }
+
+        .tech-stack {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .tech-item {
+            background-color: var(--light);
+            padding: 1.5rem;
+            border-radius: var(--radius);
+            border-left: 4px solid var(--secondary);
+        }
+
+        .tech-item h4 {
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .code-block {
+            background-color: var(--dark);
+            color: var(--light);
+            padding: 1.5rem;
+            border-radius: var(--radius);
+            overflow-x: auto;
+            margin: 1.5rem 0;
+            font-family: 'Courier New', monospace;
+        }
+
+        .code-block code {
+            display: block;
+            white-space: pre;
+        }
+
+        .architecture-image {
+            text-align: center;
+            margin: 2rem 0;
+        }
+
+        .architecture-image img {
+            max-width: 100%;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+        }
+
+        .architecture-caption {
+            margin-top: 1rem;
+            color: var(--text-light);
+            font-style: italic;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+        }
+
+        th, td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--light);
+        }
+
+        th {
+            background-color: var(--light);
+            color: var(--primary);
+        }
+
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+
+        .test-results {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .test-card {
+            background-color: var(--light);
+            padding: 1.5rem;
+            border-radius: var(--radius);
+            border-top: 4px solid var(--success);
+        }
+
+        .test-card.failed {
+            border-top-color: var(--accent);
+        }
+
+        .test-card h4 {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .status {
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .status.success {
+            background-color: rgba(39, 174, 96, 0.2);
+            color: var(--success);
+        }
+
+        .status.failed {
+            background-color: rgba(231, 76, 60, 0.2);
+            color: var(--accent);
+        }
+
+        footer {
+            background-color: var(--dark);
+            color: white;
+            padding: 3rem 0;
+            text-align: center;
+        }
+
+        .footer-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            text-align: left;
+        }
+
+        .footer-section h3 {
+            color: white;
+            margin-bottom: 1.5rem;
+        }
+
+        .footer-section ul {
+            list-style: none;
+        }
+
+        .footer-section li {
+            margin-bottom: 0.8rem;
+        }
+
+        .footer-section a {
+            color: var(--light);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+
+        .footer-section a:hover {
+            color: var(--secondary);
+        }
+
+        .social-links {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .social-links a {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            transition: all 0.3s;
+        }
+
+        .social-links a:hover {
+            background-color: var(--secondary);
+            transform: translateY(-3px);
+        }
+
+        .copyright {
+            margin-top: 3rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
+            nav ul {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            .hero h1 {
+                font-size: 2rem;
+            }
+            
+            .tech-stack, .test-results {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <i class="fas fa-cloud"></i>
+                    <span>Linux VPC Project</span>
+                </div>
+                <nav>
+                    <ul>
+                        <li><a href="#overview">Overview</a></li>
+                        <li><a href="#architecture">Architecture</a></li>
+                        <li><a href="#tech">Tech Stack</a></li>
+                        <li><a href="#usage">Usage</a></li>
+                        <li><a href="#testing">Testing</a></li>
+                        <li><a href="#conclusion">Conclusion</a></li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <section class="hero">
+        <div class="container">
+            <h1>Building a Virtual Private Cloud (VPC) from Scratch on Linux</h1>
+            <p>Implementing AWS VPC features using Linux networking primitives - subnets, routing, NAT, peering, and security groups on a single host.</p>
+            <div class="hero-buttons">
+                <a href="#usage" class="btn">Get Started</a>
+                <a href="#architecture" class="btn btn-outline">View Architecture</a>
+            </div>
+        </div>
+    </section>
+
+    <main class="container">
+        <section id="overview">
+            <h2><i class="fas fa-rocket"></i> Overview</h2>
+            <p>In this project, I built a fully functional Virtual Private Cloud (VPC) system entirely from scratch using Linux networking primitives. This implementation replicates core AWS VPC features including subnets, routing, NAT gateways, VPC isolation, peering, and security groups - all running on a single Linux host.</p>
+            
+            <h3>What We're Building</h3>
+            <ul>
+                <li><strong>Custom CLI Tool (vpcctl)</strong> - Bash-based VPC management</li>
+                <li><strong>Network Isolation</strong> - Using Linux namespaces</li>
+                <li><strong>Routing & NAT</strong> - Internal routing and internet access</li>
+                <li><strong>VPC Peering</strong> - Cross-VPC communication</li>
+                <li><strong>Security Groups</strong> - JSON-based firewall rules</li>
+                <li><strong>Complete Automation</strong> - Creation to cleanup</li>
+            </ul>
+        </section>
+
+        <section id="architecture">
+            <h2><i class="fas fa-sitemap"></i> Architecture Overview</h2>
+            <p>The VPC implementation uses Linux network namespaces to create isolated subnets, connected via virtual Ethernet pairs to Linux bridges that act as virtual routers. Each VPC has its own routing table and firewall rules.</p>
+            
+            <div class="architecture-image">
+                <img src="Architecture-Overview.png" alt="VPC Architecture Overview">
+                <p class="architecture-caption">Architecture diagram showing VPC components and their relationships</p>
+            </div>
+            
+            <h3>Under the Hood</h3>
+            
+            <h4>Network Namespaces (Subnets)</h4>
+            <p>Each subnet is an isolated network namespace:</p>
+            <div class="code-block">
+                <code># Create namespace for subnet
+ip netns add subnet-my-vpc-public
+
+# View all namespaces
+ip netns list</code>
+            </div>
+            
+            <h4>Virtual Ethernet (veth) Pairs</h4>
+            <p>Connect namespaces to bridges:</p>
+            <div class="code-block">
+                <code># Create veth pair
+ip link add veth-host type veth peer name veth-ns
+
+# Move one end to namespace
+ip link set veth-ns netns subnet-my-vpc-public</code>
+            </div>
+            
+            <h4>Linux Bridges (VPC Routers)</h4>
+            <p>Each VPC has a bridge acting as router:</p>
+            <div class="code-block">
+                <code># Create bridge
+ip link add br-my-vpc type bridge
+ip link set br-my-vpc up</code>
+            </div>
+            
+            <h4>NAT Configuration</h4>
+            <p>Internet access for public subnets:</p>
+            <div class="code-block">
+                <code># Enable IP forwarding
+echo 1 > /proc/sys/net/ipv4/ip_forward
+
+# Configure NAT
+iptables -t nat -A POSTROUTING -s 10.0.1.0/24 -o eth0 -j MASQUERADE</code>
+            </div>
+        </section>
+
+        <section id="tech">
+            <h2><i class="fas fa-tools"></i> Technical Stack</h2>
+            <div class="tech-stack">
+                <div class="tech-item">
+                    <h4>Network Namespaces</h4>
+                    <p>Subnet isolation and network segmentation</p>
+                </div>
+                <div class="tech-item">
+                    <h4>veth Pairs</h4>
+                    <p>Virtual Ethernet connections between namespaces</p>
+                </div>
+                <div class="tech-item">
+                    <h4>Linux Bridges</h4>
+                    <p>Virtual switching and routing</p>
+                </div>
+                <div class="tech-item">
+                    <h4>iptables</h4>
+                    <p>Firewall and NAT rules implementation</p>
+                </div>
+                <div class="tech-item">
+                    <h4>Bash Scripting</h4>
+                    <p>Automation and CLI development</p>
+                </div>
+                <div class="tech-item">
+                    <h4>JSON</h4>
+                    <p>Firewall policy configuration</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="usage">
+            <h2><i class="fas fa-terminal"></i> Installation & Usage</h2>
+            
+            <h3>Prerequisites</h3>
+            <div class="code-block">
+                <code># Ubuntu/Debian
+sudo apt update
+sudo apt install iproute2 iptables bridge-utils jq python3 curl
+
+# CentOS/RHEL
+sudo yum install iproute iptables bridge-utils jq python3 curl</code>
+            </div>
+            
+            <h3>Get the Project</h3>
+            <div class="code-block">
+                <code>git clone &lt;your-repo-url&gt;
+cd Local-linux-VPC
+chmod +x vpcctl scripts/*.sh</code>
+            </div>
+            
+            <h3>Basic VPC Creation</h3>
+            <div class="code-block">
+                <code># Create a VPC
+sudo ./vpcctl create-vpc my-vpc 10.0.0.0/16
+
+# Create subnets
+sudo ./vpcctl create-subnet my-vpc public public 10.0.1.0/24
+sudo ./vpcctl create-subnet my-vpc private private 10.0.2.0/24
+
+# List VPCs
+sudo ./vpcctl list</code>
+            </div>
+            
+            <h3>Deploy Test Workloads</h3>
+            <div class="code-block">
+                <code># Deploy web servers in subnets
+sudo ./vpcctl deploy-workload my-vpc public web-server 10.0.1.100
+sudo ./vpcctl deploy-workload my-vpc private app-server 10.0.2.100</code>
+            </div>
+            
+            <h3>Network Testing</h3>
+            <div class="code-block">
+                <code># Test connectivity
+sudo ./vpcctl test-connectivity subnet-my-vpc-public 10.0.2.100
+sudo ./vpcctl test-internet subnet-my-vpc-public</code>
+            </div>
+            
+            <h3>Advanced Features</h3>
+            <h4>VPC Peering</h4>
+            <div class="code-block">
+                <code># Create second VPC
+sudo ./vpcctl create-vpc production 172.16.0.0/16
+sudo ./vpcctl create-subnet production web public 172.16.1.0/24
+
+# Establish peering
+sudo ./vpcctl create-peering my-vpc production
+
+# Verify peering
+sudo ./vpcctl list-peerings</code>
+            </div>
+            
+            <h4>Security Groups</h4>
+            <div class="code-block">
+                <code># Add firewall rules
+sudo ./vpcctl add-firewall-rule 10.0.1.0/24 80 tcp allow
+sudo ./vpcctl add-firewall-rule 10.0.1.0/24 22 tcp deny
+
+# List rules
+sudo ./vpcctl list-firewall-rules</code>
+            </div>
+        </section>
+
+        <section id="testing">
+            <h2><i class="fas fa-vial"></i> Testing & Validation</h2>
+            
+            <div class="test-results">
+                <div class="test-card">
+                    <h4>Internal VPC Connectivity <span class="status success">SUCCESS</span></h4>
+                    <p>Testing communication between subnets within the same VPC.</p>
+                    <div class="code-block">
+                        <code># Deploy workloads
+sudo ./vpcctl deploy-workload my-vpc public web1 10.0.1.10
+sudo ./vpcctl deploy-workload my-vpc private app1 10.0.2.10
+
+# Test connectivity
+sudo ./vpcctl test-connectivity subnet-my-vpc-public 10.0.2.10
+# Expected: SUCCESS</code>
+                    </div>
+                </div>
+                
+                <div class="test-card">
+                    <h4>Internet Access <span class="status success">SUCCESS</span></h4>
+                    <p>Testing internet connectivity from public subnet.</p>
+                    <div class="code-block">
+                        <code># Test public subnet internet
+sudo ./vpcctl test-internet subnet-my-vpc-public
+# Expected: SUCCESS
+
+# Test private subnet internet  
+sudo ./vpcctl test-internet subnet-my-vpc-private
+# Expected: FAILED (by design)</code>
+                    </div>
+                </div>
+                
+                <div class="test-card failed">
+                    <h4>VPC Isolation <span class="status failed">FAILED</span></h4>
+                    <p>Testing that VPCs are isolated by default (expected failure).</p>
+                    <div class="code-block">
+                        <code># Create second VPC
+sudo ./vpcctl create-vpc isolated 192.168.0.0/16
+sudo ./vpcctl create-subnet isolated web public 192.168.1.0/24
+sudo ./vpcctl deploy-workload isolated web isolated-app 192.168.1.10
+
+# Attempt cross-VPC communication
+sudo ./vpcctl test-connectivity subnet-my-vpc-public 192.168.1.10
+# Expected: FAILED (isolation working)</code>
+                    </div>
+                </div>
+                
+                <div class="test-card">
+                    <h4>VPC Peering <span class="status success">SUCCESS</span></h4>
+                    <p>Testing cross-VPC communication after peering.</p>
+                    <div class="code-block">
+                        <code># Enable peering
+sudo ./vpcctl create-peering my-vpc isolated
+
+# Test after peering
+sudo ./vpcctl test-connectivity subnet-my-vpc-public 192.168.1.10
+# Expected: SUCCESS</code>
+                    </div>
+                </div>
+                
+                <div class="test-card failed">
+                    <h4>Firewall Rules <span class="status failed">FAILED</span></h4>
+                    <p>Testing firewall rule enforcement.</p>
+                    <div class="code-block">
+                        <code># Add restrictive rules
+sudo ./vpcctl add-firewall-rule 10.0.1.0/24 22 tcp deny
+
+# Test SSH access (should be blocked)
+sudo ip netns exec subnet-my-vpc-public nc -zv 10.0.2.10 22
+# Expected: FAILED</code>
+                    </div>
+                </div>
+            </div>
+            
+            <h3>Demonstration Script</h3>
+            <p>Run the complete test suite:</p>
+            <div class="code-block">
+                <code># Execute full demonstration
+sudo ./examples/demo_workloads.sh
+
+# Or run the video demonstration script
+sudo ./demo-video-script.sh</code>
+            </div>
+        </section>
+
+        <section id="advanced">
+            <h2><i class="fas fa-cogs"></i> Advanced Usage</h2>
+            
+            <h3>Multi-Tier Application Architecture</h3>
+            <div class="code-block">
+                <code># Three-tier setup
+sudo ./vpcctl create-vpc three-tier 10.10.0.0/16
+sudo ./vpcctl create-subnet three-tier web public 10.10.1.0/24
+sudo ./vpcctl create-subnet three-tier app private 10.10.2.0/24  
+sudo ./vpcctl create-subnet three-tier db private 10.10.3.0/24
+
+# Deploy workloads
+sudo ./vpcctl deploy-workload three-tier web frontend 10.10.1.100
+sudo ./vpcctl deploy-workload three-tier app backend 10.10.2.100
+sudo ./vpcctl deploy-workload three-tier db database 10.10.3.100</code>
+            </div>
+            
+            <h3>Complex Firewall Policies</h3>
+            <p>Create JSON firewall rules:</p>
+            <div class="code-block">
+                <code>{
+  "10.0.1.0": {
+    "ingress": [
+      {"port": 80, "protocol": "tcp", "action": "allow"},
+      {"port": 443, "protocol": "tcp", "action": "allow"},
+      {"port": 22, "protocol": "tcp", "action": "deny"}
+    ]
+  }
+}</code>
+            </div>
+        </section>
+
+        <section id="cleanup">
+            <h2><i class="fas fa-broom"></i> Cleanup & Maintenance</h2>
+            
+            <h3>Individual Resource Cleanup</h3>
+            <div class="code-block">
+                <code># Delete specific VPC
+sudo ./vpcctl delete-vpc my-vpc
+
+# Clear firewall rules
+sudo ./vpcctl clear-firewall-rules
+
+# Remove peering
+sudo ./vpcctl delete-peering my-vpc isolated</code>
+            </div>
+            
+            <h3>Complete Environment Cleanup</h3>
+            <div class="code-block">
+                <code># Remove all VPC resources
+sudo ./vpcctl cleanup-all
+
+# Or use the cleanup script
+sudo ./scripts/cleanup.sh</code>
+            </div>
+            
+            <h3>Manual Verification</h3>
+            <p>After cleanup, verify no resources remain:</p>
+            <div class="code-block">
+                <code># Check for orphaned resources
+ip netns list
+ip link show type bridge
+iptables -L -n | grep -E "vpc|subnet"</code>
+            </div>
+        </section>
+
+        <section id="learning">
+            <h2><i class="fas fa-graduation-cap"></i> Key Learning Outcomes</h2>
+            <p>Through this project, I've demonstrated:</p>
+            <ul>
+                <li><strong>Deep Linux Networking Understanding</strong> - Namespaces, bridges, routing</li>
+                <li><strong>Cloud Networking Concepts</strong> - VPCs, subnets, NAT, peering</li>
+                <li><strong>Security Implementation</strong> - Firewalls and isolation</li>
+                <li><strong>Automation Skills</strong> - Bash scripting and CLI development</li>
+                <li><strong>Troubleshooting Ability</strong> - Network debugging and validation</li>
+            </ul>
+        </section>
+
+        <section id="conclusion">
+            <h2><i class="fas fa-flag-checkered"></i> Conclusion</h2>
+            <p>This project successfully demonstrates that complex cloud networking concepts can be implemented using basic Linux tools. The vpcctl CLI provides an intuitive interface for managing virtual networks that behave like real cloud VPCs.</p>
+            
+            <h3>Future Enhancements</h3>
+            <ul>
+                <li><strong>Load Balancing</strong> - Add HAProxy between tiers</li>
+                <li><strong>Monitoring</strong> - Integration with Prometheus</li>
+                <li><strong>Container Support</strong> - Docker network integration</li>
+                <li><strong>GUI Interface</strong> - Web-based management console</li>
+                <li><strong>Kubernetes CNI</strong> - Custom Container Network Interface</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>Linux VPC Project</h3>
+                    <p>Building cloud networking from scratch using Linux primitives.</p>
+                    <div class="social-links">
+                        <a href="#"><i class="fab fa-github"></i></a>
+                        <a href="#"><i class="fab fa-twitter"></i></a>
+                        <a href="#"><i class="fab fa-linkedin"></i></a>
+                    </div>
+                </div>
+                <div class="footer-section">
+                    <h3>Resources</h3>
+                    <ul>
+                        <li><a href="#">Linux Network Namespaces</a></li>
+                        <li><a href="#">Linux Bridge Documentation</a></li>
+                        <li><a href="#">iptables Tutorial</a></li>
+                        <li><a href="#">AWS VPC Concepts</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h3>Future Enhancements</h3>
+                    <ul>
+                        <li>Load Balancing with HAProxy</li>
+                        <li>Monitoring Integration</li>
+                        <li>Container Support</li>
+                        <li>GUI Interface</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="copyright">
+                <p>&copy; 2023 Linux VPC Project. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>
